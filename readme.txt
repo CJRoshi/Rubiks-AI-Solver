@@ -32,7 +32,7 @@ It must:
 - White-balance the image
 - Feed results (preferably by way of list or array) into average_color
 
-average_color: This branch is dedicated to finsing the median (or mode) color of a region from white_balance.
+average_color: This branch is dedicated to finding the median (or mode) color of a region from white_balance.
 
 It must:
 
