@@ -1,7 +1,9 @@
-import numpy as np
-import cv2
-import time
 import copy
+import time
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 #This function returns a canny image.
 def detect_edges(image):
@@ -15,31 +17,6 @@ def detect_edges(image):
     canny = cv2.Canny(blurred, 50, 150)
     
     return canny
-
-# For the purposes of finding regions....
-
-
-def flood_Fill(image, x, y, color, visited):
-    # Check if x, y are within the bounds of the image and the pixel is not already visited
-    if x >= 0 and x < len(image) and y >= 0 and y < len(image[0]) and visited[x][y] == 0:
-        # Mark the pixel as visited
-        visited[x][y] = 1
-        # Recursively color all the surrounding pixels
-        flood_Fill(image, x + 1, y, color, visited)
-        flood_Fill(image, x - 1, y, color, visited)
-        flood_Fill(image, x, y + 1, color, visited)
-        flood_Fill(image, x, y - 1, color, visited)
-
-def count_Regions(image):
-    visited = [[0 for j in range(len(image[0]))] for i in range(len(image))]
-    regions = 0
-    for i in range(len(image)):
-        for j in range(len(image[0])):
-            if visited[i][j] == 0:
-                regions += 1
-                flood_Fill(image, i, j, regions + 1, visited)
-    return regions
-
 
 '''----- MAIN -----'''
 
@@ -72,6 +49,7 @@ while result:
 
         # Crop image
         frame = frame[border_top:border_top+center_width, border_side:border_side+center_width]
+        frame2 = frame
 
         # Detect edges in the image
         edges = detect_edges(frame)
@@ -81,6 +59,27 @@ while result:
         # Display the edges and cropped image.
         cv2.imshow('Edges', edges)
         cv2.imshow('Cropped', frame)
+
+        # Count fully-bounded regions in image, per area.
+
+        width1 = len(frame)
+        width2 = len(frame[0])
+        n=3
+
+        for hor in range(n):
+            for ver in range(n):
+                unit_width = width1//n
+                unit_height = width2//n
+                region = frame[hor*unit_width:(hor+1)*unit_width, ver*unit_height:(ver+1)*unit_height]
+                print(region)
+
+
+    
+            
+
+
+
+
 
 
 # After the loop, release the camera object
