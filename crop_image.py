@@ -18,6 +18,21 @@ def detect_edges(image):
     
     return canny
 
+# Sanity checks
+def is_closed(contour):
+    # Check if the first and last points of the contour are close enough
+    if cv2.contourArea(contour) >= 400:
+        print(np.allclose(contour[0], contour[-1], 20, 20))
+        return np.allclose(contour[0], contour[-1],20, 20)
+    else:
+        return False
+
+    
+
+def is_in_region(contour, region):
+    # Check if all points of the contour are inside the specified region
+    return np.all([cv2.pointPolygonTest(region, tuple(point), False) >= 0 for point in contour])
+
 '''----- MAIN -----'''
 
 # init camera (1 refers to the rear cam)
@@ -49,29 +64,39 @@ while result:
 
         # Crop image
         frame = frame[border_top:border_top+center_width, border_side:border_side+center_width]
-        frame2 = frame
 
         # Detect edges in the image
         edges = detect_edges(frame)
         contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(frame, contours, -1, (163, 100, 38), 3)
+        #cv2.drawContours(frame, contours, -1, (163, 100, 38), 3)
 
-        # Display the edges and cropped image.
-        cv2.imshow('Edges', edges)
-        cv2.imshow('Cropped', frame)
-
-        # Count fully-bounded regions in image, per area.
-
-        width1 = len(frame)
-        width2 = len(frame[0])
+        #FOR EACH REGION
+        width1 = len(edges)
+        width2 = len(edges[0])
         n=3
 
         for hor in range(n):
             for ver in range(n):
                 unit_width = width1//n
                 unit_height = width2//n
-                region = frame[hor*unit_width:(hor+1)*unit_width, ver*unit_height:(ver+1)*unit_height]
-                print(region)
+
+                region = edges[hor*unit_width:(hor+1)*unit_width, ver*unit_height:(ver+1)*unit_height]
+
+                # Iterate through the contours and hierarchy
+                for i, contour in enumerate(contours):
+                    # Check if the contour is outermost
+                    if hierarchy[0][i][3] == -1:
+                        # Check if the contour is closed
+                        if is_closed(contour):
+                            # Check if the contour is in one region of the image
+                            if is_in_region(contour, region):
+                                # Draw the contour on the image
+                                cv2.drawContours(frame, [contour], 0, (0, 255, 0), 2)
+
+            # Display the edges and cropped image.
+            cv2.imshow('Edges', edges)
+            cv2.imshow('Cropped', frame)
+
 
 
     
