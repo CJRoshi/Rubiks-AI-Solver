@@ -240,7 +240,6 @@ def correct_labels(image_cropped:np.array, sticker_contours:list, display:bool) 
 
     return label_key
 
-
 ######## MAIN ########
 if __name__=="__main__":
     # Initialize the camera object.
