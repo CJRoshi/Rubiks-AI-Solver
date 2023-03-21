@@ -4,6 +4,91 @@ import cv2
 import numpy as np
 
 ### FUNC ###
+
+def guidelines(image:np.array) -> np.array:
+    '''
+    A function that applies guidelines to a raw image.
+
+    Input:
+    image (np.array):               A raw RGB image of a face of a Rubik's Cube.
+
+    Output:
+    image_guidelines (np.array):    A copy of image with guidelines over its center portion.
+
+    Guidelines are placed using a cropping algorithm identical to identify_stickers.
+    '''
+    # Get the dimensions to crop the image to its center plus some bound of error, adjusted dynamically by resolution.
+    imgheight, imgwidth, depth = np.shape(image)
+    
+    image_guidelines = np.copy(image)
+    WHITE = [255, 255, 255]
+
+    if imgwidth >= imgheight:
+        larger_side = imgwidth
+        smaller_side = imgheight
+
+        border_top  = (smaller_side)//8
+        border_side = (larger_side)//2-3*border_top
+        center_width = 6*border_top
+
+        # Horizontal borders.
+
+        # Top
+        image_guidelines[border_top][border_side:border_side+center_width] = WHITE
+
+        # Thirds
+        image_guidelines[border_top+center_width//3][border_side:border_side+center_width] = WHITE
+        image_guidelines[border_top+2*center_width//3][border_side:border_side+center_width] = WHITE
+
+        # Bottom 
+        image_guidelines[border_top+center_width][border_side:border_side+center_width] = WHITE
+
+        # Vertical borders.
+
+        # Left
+        image_guidelines[border_top:border_top+center_width,border_side] = WHITE
+
+        # Thirds
+        image_guidelines[border_top:border_top+center_width,border_side+center_width//3] = WHITE
+        image_guidelines[border_top:border_top+center_width,border_side+2*center_width//3] = WHITE
+
+        # Right
+        image_guidelines[border_top:border_top+center_width,border_side+center_width] = WHITE
+
+    elif imgwidth < imgheight:
+        larger_side = imgheight
+        smaller_side = imgwidth
+
+        border_side  = (smaller_side)//8
+        border_top = (larger_side)//2-3*border_side
+        center_width = 6*border_side
+
+        # Horizontal borders.
+
+        # Top
+        image_guidelines[border_top][border_side:border_side+center_width] = WHITE
+
+        # Thirds
+        image_guidelines[border_top+center_width//3][border_side:border_side+center_width] = WHITE
+        image_guidelines[border_top+2*center_width//3][border_side:border_side+center_width] = WHITE
+
+        # Bottom 
+        image_guidelines[border_top+center_width][border_side:border_side+center_width] = WHITE
+
+        # Vertical borders.
+
+        # Left
+        image_guidelines[border_top:border_top+center_width,border_side] = WHITE
+
+        # Thirds
+        image_guidelines[border_top:border_top+center_width,border_side+center_width//3] = WHITE
+        image_guidelines[border_top:border_top+center_width,border_side+2*center_width//3] = WHITE
+
+        # Right
+        image_guidelines[border_top:border_top+center_width,border_side+center_width] = WHITE
+
+    return image_guidelines
+
 def detect_edges(image:np.array) -> np.array:
     '''
     A function that applies Canny Edge Detection to an image.
@@ -46,45 +131,51 @@ def is_rubik_square(contour:np.array, center_width:int) -> bool:
     else:
         return False
     
-def identify_stickers(frame:np.array) -> tuple[np.array, list]:
+def identify_stickers(image:np.array) -> tuple[np.array, list]:
     '''
     A function that identifies the stickers on one face of a Rubik's Cube.
 
     Input:
-    frame (np.array):           An RGB image that is a raw photo of one face of the Rubik's Cube. 
+    image (np.array):           An RGB image that is a raw photo of one face of the Rubik's Cube. 
 
     Outputs:
-    frame2 (np.array):          frame, after dynamic cropping and basic adjustments have been applied to it.
+    imagee2 (np.array):         image, after dynamic cropping and basic adjustments have been applied to it.
     sticker_contours (list):    A list of the contours; these contours are the boundaries of the stckers.
 
-    frame is dynamically cropped to a center square plus one-eighth of the length of the largest side.
+    image is dynamically cropped to a center square plus one-eighth of the length of the largest side.
     Canny edge detection is applied using detect_edges, and cv2.findContours finds the contours that could correspond to stickers.
 
     The contours are processed using is_rubik_square, and then they are sorted by size. 
-    The nine largest (which will be the Rubik's cube stickers) are returned, along with the cropped version of frame
+    The nine largest (which will be the Rubik's cube stickers) are returned, along with the cropped version of image
     '''
 
     # Get the dimensions to crop the image to its center plus some bound of error, adjusted dynamically by resolution.
-    imgwidth = len(frame[0])
-    imgheight = len(frame)
+    imgheight, imgwidth, depth = np.shape(image)
 
     if imgwidth >= imgheight:
         larger_side = imgwidth
         smaller_side = imgheight
+
+        border_top  = (smaller_side)//8
+        border_side = (larger_side)//2-3*border_top
+        true_center_width = 4*border_top
+        center_width = 6*border_top
+
     elif imgwidth < imgheight:
         larger_side = imgheight
         smaller_side = imgwidth
 
-    border_top  = (smaller_side)//8
-    border_side = (larger_side)//2-3*border_top
-    true_center_width = 4*border_top
-    center_width = 6*border_top
+        border_side  = (smaller_side)//8
+        border_top = (larger_side)//2-3*border_side
+        true_center_width = 4*border_side
+        center_width = 6*border_side
 
     # Crop the image to the above dimensions.
-    frame2 = frame[border_top:border_top+center_width, border_side:border_side+center_width]
+    image_cropped = np.copy(image)
+    image_cropped = image_cropped[border_top:border_top+center_width, border_side:border_side+center_width]
 
     # Detect edges in the image.
-    edges = detect_edges(frame2)
+    edges = detect_edges(image_cropped)
     contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     # Find all valid contours; sort them by size.
@@ -99,9 +190,9 @@ def identify_stickers(frame:np.array) -> tuple[np.array, list]:
     # Get the largest nine contours of this list.
     sticker_contours = sorted_contours[:9]
 
-    return frame2, sticker_contours
+    return image_cropped, sticker_contours
 
-def correct_labels(frame2:np.array, sticker_contours:list, display:bool) -> list[tuple[int, int]]:
+def correct_labels(image_cropped:np.array, sticker_contours:list, display:bool) -> list[tuple[int, int]]:
     '''
     A function that takes cropped of a face of a Rubik's Cube and the locations of its stickers generated by identify_stickers, 
     which labels the stickers to a standard format:
@@ -113,7 +204,7 @@ def correct_labels(frame2:np.array, sticker_contours:list, display:bool) -> list
     In this format, 4 is the center, 1 is the top-left corner, etc.
 
     Inputs:
-    frame2 (np.array):                  The RGB image of the Rubik's Cube. It must be cropped to a square by identify_stickers in order for this algorithm to function.
+    image_cropped (np.array):           The RGB image of the Rubik's Cube. It must be cropped to a square by identify_stickers in order for this algorithm to function.
     sticker_contours (list):            A list of the contours that are the stickers of the Rubik's Cube, also generated by identify_stickers.
 
     Output:
@@ -123,7 +214,7 @@ def correct_labels(frame2:np.array, sticker_contours:list, display:bool) -> list
     # Preparation and coordinate generation for point tests. 
     point_tests = []
     label_key = []
-    standard_length = len(frame2)
+    standard_length = len(image_cropped)
     for y_coord_ind in range(3):
         for x_coord_ind in range(3):
             x_coord = standard_length//4*(x_coord_ind+1)
@@ -138,14 +229,14 @@ def correct_labels(frame2:np.array, sticker_contours:list, display:bool) -> list
 
     if display:
         # Display the contours on the image if specified.
-        frame3=frame2
+        image_cropped_overwrite=np.copy(image_cropped)
         for ptindex, cntindex in label_key:
             moments = cv2.moments(sticker_contours[cntindex])
             contour_x = int(moments['m10']/moments['m00'])
             contour_y = int(moments['m01']/moments['m00'])
-            cv2.putText(frame3, text=str(ptindex+1), org=(contour_x, contour_y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255,255,255), thickness=2, lineType=cv2.LINE_AA)
-            cv2.drawContours(frame3, list(sticker_contours[cntindex]), -1, color=(33,237,255))
-            cv2.imshow('Labeled', frame3)
+            cv2.putText(image_cropped_overwrite, text=str(ptindex+1), org=(contour_x, contour_y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255,255,255), thickness=2, lineType=cv2.LINE_AA)
+            cv2.drawContours(image_cropped_overwrite, list(sticker_contours[cntindex]), -1, color=(33,237,255))
+            cv2.imshow('Labeled', image_cropped_overwrite)
 
     return label_key
 
@@ -161,10 +252,13 @@ time.sleep(0.5)
 
 while result:
     # Capture video frame by frame
-    result, frame = cam.read()
+    result, image = cam.read()
 
-    # Display the resulting frame
-    cv2.imshow('VIDEO FEED', frame)
+    # Place guidelines on a copy of the image.
+    image_guidelines = guidelines(image)
+
+    # Display the resulting copy.
+    cv2.imshow('VIDEO FEED', image_guidelines)
       
     # Use Q to quit.
     if cv2.waitKey(81)  == ord('q'):
@@ -172,10 +266,10 @@ while result:
 
     # Use P to capture and process images.
     if cv2.waitKey(80) == ord('p'):
-        
-        frame2, sticker_contours = identify_stickers(frame)
 
-        label_key = correct_labels(frame2, sticker_contours, True)
+        image_cropped, sticker_contours = identify_stickers(image)
+
+        label_key = correct_labels(image_cropped, sticker_contours, True)
 
 # After the loop, release the camera object.
 cam.release()
