@@ -201,7 +201,7 @@ def correct_labels(image_cropped:np.array, sticker_contours:list, display:bool) 
     [3][4][5]
     [6][7][8]
 
-    In this format, 4 is the center, 1 is the top-left corner, etc.
+    In this format, 4 is the center, 0 is the top-left corner, etc.
 
     Inputs:
     image_cropped (np.array):           The RGB image of the Rubik's Cube. It must be cropped to a square by identify_stickers in order for this algorithm to function.
