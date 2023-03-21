@@ -242,37 +242,37 @@ def correct_labels(image_cropped:np.array, sticker_contours:list, display:bool) 
 
 
 ######## MAIN ########
-
-# Initialize the camera object.
-cam = cv2.VideoCapture(1)
-result, image = cam.read()
-
-# Time delay to allow the shutter to autofocus.
-time.sleep(0.5)
-
-while result:
-    # Capture video frame by frame
+if __name__=="__main__":
+    # Initialize the camera object.
+    cam = cv2.VideoCapture(1)
     result, image = cam.read()
 
-    # Place guidelines on a copy of the image.
-    image_guidelines = guidelines(image)
+    # Time delay to allow the shutter to autofocus.
+    time.sleep(0.5)
 
-    # Display the resulting copy.
-    cv2.imshow('VIDEO FEED', image_guidelines)
-      
-    # Use Q to quit.
-    if cv2.waitKey(81)  == ord('q'):
-        break
+    while result:
+        # Capture video frame by frame
+        result, image = cam.read()
 
-    # Use P to capture and process images.
-    if cv2.waitKey(80) == ord('p'):
+        # Place guidelines on a copy of the image.
+        image_guidelines = guidelines(image)
 
-        image_cropped, sticker_contours = identify_stickers(image)
+        # Display the resulting copy.
+        cv2.imshow('VIDEO FEED', image_guidelines)
+        
+        # Use Q to quit.
+        if cv2.waitKey(81)  == ord('q'):
+            break
 
-        label_key = correct_labels(image_cropped, sticker_contours, True)
+        # Use P to capture and process images.
+        if cv2.waitKey(80) == ord('p'):
 
-# After the loop, release the camera object.
-cam.release()
+            image_cropped, sticker_contours = identify_stickers(image)
 
-# Destroy all windows.
-cv2.destroyAllWindows()
+            label_key = correct_labels(image_cropped, sticker_contours, True)
+
+    # After the loop, release the camera object.
+    cam.release()
+
+    # Destroy all windows.
+    cv2.destroyAllWindows()
