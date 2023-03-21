@@ -138,13 +138,14 @@ def correct_labels(frame2:np.array, sticker_contours:list, display:bool) -> list
 
     if display:
         # Display the contours on the image if specified.
+        frame3=frame2
         for ptindex, cntindex in label_key:
             moments = cv2.moments(sticker_contours[cntindex])
             contour_x = int(moments['m10']/moments['m00'])
             contour_y = int(moments['m01']/moments['m00'])
-            cv2.putText(frame2, text=str(ptindex+1), org=(contour_x, contour_y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255,255,255), thickness=2, lineType=cv2.LINE_AA)
-            cv2.drawContours(frame2, list(sticker_contours[cntindex]), -1, color=(33,237,255))
-            cv2.imshow('Labeled', frame2)
+            cv2.putText(frame3, text=str(ptindex+1), org=(contour_x, contour_y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255,255,255), thickness=2, lineType=cv2.LINE_AA)
+            cv2.drawContours(frame3, list(sticker_contours[cntindex]), -1, color=(33,237,255))
+            cv2.imshow('Labeled', frame3)
 
     return label_key
 
