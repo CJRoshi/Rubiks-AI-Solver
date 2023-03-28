@@ -511,13 +511,13 @@ if __name__=="__main__":
     # Get images from directory.
     images = []
     for filename in os.listdir():
-        if filename[-4:] == '.png':
+        if filename[-4:] == '.png' and filename[0:4] == "edge":
             images.append(filename)
 
     # Generate each trial.
     trials_list = []
-    for lower in range(0,101):
-        for upper in range(100, 201):
+    for lower in range(0, 100):
+        for upper in range(100, 200):
             trials_list.append((lower,upper))
               
     per_trial_list = []
@@ -548,7 +548,7 @@ if __name__=="__main__":
         print("Completed "+of_total+" of "+len_trials+".", end='\r')
         per_trial_list.append(success)
 
-    sums = [df.sum() for df in per_trial_list]
+    sums = [int(df.sum()) for df in per_trial_list]
     ind = sums.index(max(sums))
     print(trials_list[ind])
-    print(round(((sums[ind]/len(images)*9)*100), 2))
+    print(round(((sums[ind]/(len(images)*9))*100), 2))
