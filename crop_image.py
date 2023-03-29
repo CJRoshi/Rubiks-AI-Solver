@@ -324,7 +324,7 @@ def guidelines(img:np.array) -> np.array:
 
     return img_guidelines
 
-def detect_edges(img:np.ndarray, lower:int=50, upper:int=150) -> np.ndarray:
+def detect_edges(img:np.ndarray, lower:int=0, upper:int=100) -> np.ndarray:
     '''
     A function that applies Canny Edge Detection to an image.
 
@@ -340,14 +340,11 @@ def detect_edges(img:np.ndarray, lower:int=50, upper:int=150) -> np.ndarray:
     img is converted to grayscale, and Gaussian Blur is applied in order to reduce noise.
     Canny edge detection is then applied to the denoised image.
     '''
-    # convert the img to grayscale
+    # convert the image to grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
-    # apply GaussianBlur to reduce noise
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    
     # apply Canny edge detection
-    canny = cv2.Canny(blurred, lower, upper)
+    canny = cv2.Canny(gray, lower, upper)
     #cv2.imshow("Canny Edges", canny)
     
     return canny
@@ -381,7 +378,7 @@ def is_rubik_square(contour:np.ndarray, center_width:int) -> bool:
     else:
         return False
     
-def identify_stickers(img:np.ndarray, lower:int=50, upper:int=150) -> tuple[np.ndarray, list]:
+def identify_stickers(img:np.ndarray, lower:int=0, upper:int=100) -> tuple[np.ndarray, list]:
     '''
     A function that identifies the stickers on one face of a Rubik's Cube.
 
@@ -427,7 +424,7 @@ def identify_stickers(img:np.ndarray, lower:int=50, upper:int=150) -> tuple[np.n
     img_cropped = img_cropped[border_top:border_top+center_width, border_side:border_side+center_width]
 
     # Detect edges in the img.
-    edges = detect_edges(img_cropped)
+    edges = detect_edges(img_cropped, lower, upper)
     contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     # Find all valid contours; sort them by size.
@@ -507,48 +504,27 @@ def correct_labels(img_cropped:np.ndarray, sticker_contours:list, display:bool=F
 
 ######## MAIN ########
 if __name__=="__main__":
-
-    # Get images from directory.
-    images = []
-    for filename in os.listdir():
-        if filename[-4:] == '.png' and filename[0:4] == "edge":
-            images.append(filename)
-
-    # Generate each trial.
-    trials_list = []
-    for lower in range(0, 100):
-        for upper in range(100, 200):
-            trials_list.append((lower,upper))
-              
-    per_trial_list = []
-
-    len_trials = str(len(trials_list))
-
-    for idx, trial in enumerate(trials_list):
-        lower = trial[0]
-        upper = trial[1]
-
-        success = pd.DataFrame(index=images, columns=['success'])
-
-        for img_filename in images:
-            # Read image.
-            img = cv2.imread(img_filename)
-
-            # Crop image & identify stickers.
-            img_cropped, sticker_contours = identify_stickers(img)
-
-            # Relabel stickers.
-            label_key, sticker_contours = correct_labels(img_cropped, sticker_contours, display=False)
-
-            # Add data to df.
-            success_num = len(sticker_contours)
-            success.at[img_filename, 'success'] = success_num
+    # Initialize the camera object.
+    cam = cv2.VideoCapture(1)
+    result, image = cam.read()
+    # Time delay to allow the shutter to autofocus.
+    time.sleep(0.5)
+    while result:
+        # Capture video frame by frame
+        result, image = cam.read()
+        # Place guidelines on a copy of the image.
+        image_guidelines = guidelines(image)
+        # Display the resulting copy.
+        cv2.imshow('VIDEO FEED', image_guidelines)
         
-        of_total = str(idx+1)
-        print("Completed "+of_total+" of "+len_trials+".", end='\r')
-        per_trial_list.append(success)
-
-    sums = [int(df.sum()) for df in per_trial_list]
-    ind = sums.index(max(sums))
-    print(trials_list[ind])
-    print(round(((sums[ind]/(len(images)*9))*100), 2))
+        # Use Q to quit.
+        if cv2.waitKey(81)  == ord('q'):
+            break
+        # Use P to capture and process images.
+        if cv2.waitKey(80) == ord('p'):
+            image_cropped, sticker_contours = identify_stickers(image)
+            label_key = correct_labels(image_cropped, sticker_contours, True)
+    # After the loop, release the camera object.
+    cam.release()
+    # Destroy all windows.
+    cv2.destroyAllWindows()
