@@ -1,11 +1,17 @@
 import numpy as np
 import pandas as pd
-#import pandas_ml as pdml
-import cv2
 import tensorflow as tf
+from keras.callbacks import ModelCheckpoint
+from keras.layers import Flatten, Input
+from keras.layers.convolutional import Conv2D, MaxPooling2D
+from keras.layers.core import Activation, Dense, Dropout, Lambda
+from keras.layers.normalization import batch_normalization
+from keras.models import Model
+from keras.optimizers import adam
 from keras.utils import to_categorical
-import ai_basics
 from PIL import Image
+
+import ai_basics
 
 TRAIN_TEST_SPLIT = 0.7
 IM_WIDTH = IM_HEIGHT = 360
@@ -46,7 +52,7 @@ class RubiksCubeFaceDataGen():
 
         return im
     
-    def image_read(self, image_idx, in_training, batchsize=10):
+    def image_batch(self, image_idx, in_training, batchsize=10):
         "Generates image batches when using the model."
 
         images, sizes, edgedes, square_0s, square_1s, square_2s, square_3s, square_4s, square_5s, square_6s, square_7s, square_8s = [], [], [], [], [], [], [], [], [], [], [], []
@@ -94,8 +100,258 @@ class RubiksCubeFaceDataGen():
             if not in_training:
                 break
 
+
+
+class RubiksOutputModel():
+    """
+    Generates the multi-output model with 11 branches. Each has a sequence of layers defined by make_default_hidden_layers.
+    """
+    def make_default_hidden_layers(self, inputs):
+        """
+        Generate the default set of hidden layers.
+
+        Conv2D-> BatchNorm -> Pooling -> Dropout.
+        """
+        x = Conv2D(16, (3,3), padding='same')(inputs)
+        x = Activation("relu")(x)
+        x = batch_normalization(axis=-1)(x)
+        x = MaxPooling2D(pool_size=(3,3))(x)
+        x = Dropout(0.25)(x)
+
+        x = Conv2D(32, (3,3), padding='same')(x)
+        x = Activation("relu")(x)
+        x = batch_normalization(axis=-1)(x)
+        x = MaxPooling2D(pool_size=(2,2))(x)
+        x = Dropout(0.25)(x)
+
+        x = Conv2D(32, (3,3), padding='same')(x)
+        x = Activation("relu")(x)
+        x = batch_normalization(axis=-1)(x)
+        x = MaxPooling2D(pool_size=(2,2))(x)
+        x = Dropout(0.25)(x)
+
+        return x
+    
+    def build_sizes(self, inputs):
+        """
+        Builds the size branch.
+        """
+        x = self.make_default_hidden_layers(inputs)
+
+        x = Flatten()(x)
+        x = Dense(128)(x)
+        x = Activation("relu")(x)
+        x = batch_normalization()(x)
+        x = Dropout(0.5)(x)
+        x = Dense(2)(x)
+        x = Activation("sigmoid", name="size_output")(x)
+
+        return x
+    
+    def build_edges(self, inputs):
+        """
+        Builds the edgedness branch -- that is, is the cube edged or edgeless.
+        """
+        x = self.make_default_hidden_layers(inputs)
+
+        x = Flatten()(x)
+        x = Dense(128)(x)
+        x = Activation("relu")(x)
+        x = batch_normalization()(x)
+        x = Dropout(0.5)(x)
+        x = Dense(2)(x)
+        x = Activation("sigmoid", name="edged_output")(x)
+
+        return x
+    
+    def build_square0(self, inputs):
+        """
+        Builds the branch for square 0.
+        """
+        x = self.make_default_hidden_layers(inputs)
+
+        x = Flatten()(x)
+        x = Dense(128)(x)
+        x = Activation("relu")(x)
+        x = batch_normalization()(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1)(x)
+        x = Activation("softmax", name="sq0_output")(x)
+
+        return x
+    
+    def build_square1(self, inputs):
+        """
+        Builds the branch for square 1.
+        """
+        x = self.make_default_hidden_layers(inputs)
+
+        x = Flatten()(x)
+        x = Dense(128)(x)
+        x = Activation("relu")(x)
+        x = batch_normalization()(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1)(x)
+        x = Activation("softmax", name="sq1_output")(x)
+
+        return x
+    
+    def build_square2(self, inputs):
+        """
+        Builds the branch for square 2.
+        """
+        x = self.make_default_hidden_layers(inputs)
+
+        x = Flatten()(x)
+        x = Dense(128)(x)
+        x = Activation("relu")(x)
+        x = batch_normalization()(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1)(x)
+        x = Activation("softmax", name="sq2_output")(x)
+
+        return x
+    
+    def build_square3(self, inputs):
+        """
+        Builds the branch for square 3.
+        """
+        x = self.make_default_hidden_layers(inputs)
+
+        x = Flatten()(x)
+        x = Dense(128)(x)
+        x = Activation("relu")(x)
+        x = batch_normalization()(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1)(x)
+        x = Activation("softmax", name="sq3_output")(x)
+
+        return x
+    
+    def build_square4(self, inputs):
+        """
+        Builds the branch for square 4.
+        """
+        x = self.make_default_hidden_layers(inputs)
+
+        x = Flatten()(x)
+        x = Dense(128)(x)
+        x = Activation("relu")(x)
+        x = batch_normalization()(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1)(x)
+        x = Activation("softmax", name="sq4_output")(x)
+
+        return x
+    
+    def build_square5(self, inputs):
+        """
+        Builds the branch for square 5.
+        """
+        x = self.make_default_hidden_layers(inputs)
+
+        x = Flatten()(x)
+        x = Dense(128)(x)
+        x = Activation("relu")(x)
+        x = batch_normalization()(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1)(x)
+        x = Activation("softmax", name="sq5_output")(x)
+
+        return x
+    
+    def build_square6(self, inputs):
+        """
+        Builds the branch for square 6.
+        """
+        x = self.make_default_hidden_layers(inputs)
+
+        x = Flatten()(x)
+        x = Dense(128)(x)
+        x = Activation("relu")(x)
+        x = batch_normalization()(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1)(x)
+        x = Activation("softmax", name="sq6_output")(x)
+
+        return x
+    
+    def build_square7(self, inputs):
+        """
+        Builds the branch for square 7.
+        """
+        x = self.make_default_hidden_layers(inputs)
+
+        x = Flatten()(x)
+        x = Dense(128)(x)
+        x = Activation("relu")(x)
+        x = batch_normalization()(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1)(x)
+        x = Activation("softmax", name="sq7_output")(x)
+
+        return x
+    
+    def build_square8(self, inputs):
+        """
+        Builds the branch for square 8.
+        """
+        x = self.make_default_hidden_layers(inputs)
+
+        x = Flatten()(x)
+        x = Dense(128)(x)
+        x = Activation("relu")(x)
+        x = batch_normalization()(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1)(x)
+        x = Activation("softmax", name="sq8_output")(x)
+
+        return x
+    
+    def assemble_cnn(self, width, height):
+        '''
+        Used to assemble the full multioutput model.
+        '''
+
+        input_shape = (height, width, 3)
+
+        inputs = Input(shape=input_shape)
+
+        sizebr = self.build_sizes(inputs)
+        edgedbr = self.build_edges(inputs)
+        sq0br = self.build_square0(inputs)
+        sq1br = self.build_square1(inputs)
+        sq2br = self.build_square2(inputs)
+        sq3br = self.build_square3(inputs)
+        sq4br = self.build_square4(inputs)
+        sq5br = self.build_square5(inputs)
+        sq6br = self.build_square6(inputs)
+        sq7br = self.build_square7(inputs)
+        sq8br = self.build_square8(inputs)
+
+        model = Model(inputs=inputs, outputs=[sizebr, edgedbr, sq0br, sq1br, sq2br, sq3br, sq4br, sq4br, sq5br, sq6br, sq7br, sq8br], name="rubiks_net")
+
+        return model
+
+
+
 datagen = RubiksCubeFaceDataGen(data)
 train_idx, valid_idx, test_idx = datagen.generate_indices()
-                    
+model = RubiksOutputModel().assemble_cnn(IM_WIDTH, IM_HEIGHT)
 
+init_lr = 1e-4
+epochs = 100
 
+opt = adam(lr=init_lr, decay=init_lr/epochs)
+
+model.compile(optimizer=opt,loss={'size_out':'binary_crossentropy','edged_out':'binary_crossentropy','sq0out':'categorical_crossentropy','sq1out':'categorical_crossentropy','sq2out':'categorical_crossentropy','sq3out':'categorical_crossentropy','sq4out':'categorical_crossentropy','sq5out':'categorical_crossentropy','sq6out':'categorical_crossentropy','sq7out':'categorical_crossentropy','sq8out':'categorical_crossentropy'},loss_weights={'size_out':1.5,'edged_out':0.75,'sq0out':3,'sq1out':3,'sq2out':3,'sq3out':3,'sq4out':3,'sq5out':3,'sq6out':3,'sq7out':3,'sq8out':3},metrics={'size_out':'accuracy','edged_out':'accuracy','sq0out':'accuracy','sq1out':'accuracy','sq2out':'accuracy','sq3out':'accuracy','sq4out':'accuracy','sq5out':'accuracy','sq6out':'accuracy','sq7out':'accuracy','sq8out':'accuracy'})
+
+batch_size=32
+valid_batch_size=32
+
+train_gen = datagen.image_batch(train_idx, is_training=True, batchsize=batch_size)
+valid_gen = datagen.image_batch(valid_idx, is_training=True, batchsize=valid_batch_size)
+
+callbacks = [ModelCheckpoint("./model_checkpoint", monitor = 'val_loss')]
+
+history = model.fit_generator(train_gen, steps_per_epoch=len(train_idx)//batch_size, epochs=epochs, callbacks=callbacks, validation_data=valid_gen, validation_steps = len(valid_idx)//valid_batch_size)
