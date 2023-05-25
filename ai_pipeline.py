@@ -102,7 +102,7 @@ class RubiksCubeFaceDataGen():
 
                 im = self.preprocess_and_augment(file)
 
-                sizes.append(to_categorical(size, 2))
+                sizes.append(size)
                 edgedes.append(edge)
                 square_0s.append(to_categorical(square_0, 6))
                 square_1s.append(to_categorical(square_1, 6))
