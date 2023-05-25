@@ -1,17 +1,18 @@
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+
 from keras.callbacks import ModelCheckpoint
-from keras.layers import Flatten, Input
+from keras.layers import Flatten, Input, BatchNormalization
 from keras.layers.convolutional import Conv2D, MaxPooling2D
-from keras.layers.core import Activation, Dense, Dropout, Lambda
-from keras.layers.normalization import batch_normalization
+from keras.layers.core import Activation, Dense, Dropout
 from keras.models import Model
-from keras.optimizers import adam
+from keras.optimizers import Adam
 from keras.utils import to_categorical
 from PIL import Image
 
 import ai_basics
+import random
 
 TRAIN_TEST_SPLIT = 0.7
 IM_WIDTH = IM_HEIGHT = 360
@@ -45,9 +46,34 @@ class RubiksCubeFaceDataGen():
 
         return train_idx, valid_idx, test_idx
     
-    def preprocess_quick(self, img_path):
+    def preprocess_and_augment(self, img_path):
         im = Image.open(img_path)
         im = im.resize((IM_WIDTH, IM_HEIGHT))
+        im = np.asarray(im)
+
+        num_filters = random.randint(0, 5)
+        if num_filters == 0:
+            pass
+        else:
+            for x in range(num_filters):
+                positive = bool(random.randint(0,1))
+
+                if positive:
+                    amount = random.randint(2, 32)
+                else:
+                    amount = -1*random.randint(2,32)
+                
+                filterfunc = random.choice([ai_basics.redden,
+                                             ai_basics.greenify,
+                                             ai_basics.blueify,
+                                             ai_basics.saturate,
+                                             ai_basics.change_temp,
+                                             ai_basics.brighten,
+                                             ai_basics.contrast,
+                                             ai_basics.blur])
+                
+                im = filterfunc(im, amount)
+
         im = np.array(im) / 255.0
 
         return im
@@ -74,7 +100,7 @@ class RubiksCubeFaceDataGen():
 
                 file = 'dataset_imgs/'+face['file']
 
-                im = self.preprocess_quick(file)
+                im = self.preprocess_and_augment(file)
 
                 sizes.append(to_categorical(size, 2))
                 edgedes.append(edge)
@@ -114,19 +140,19 @@ class RubiksOutputModel():
         """
         x = Conv2D(16, (3,3), padding='same')(inputs)
         x = Activation("relu")(x)
-        x = batch_normalization(axis=-1)(x)
+        x = BatchNormalization(axis=-1)(x)
         x = MaxPooling2D(pool_size=(3,3))(x)
         x = Dropout(0.25)(x)
 
         x = Conv2D(32, (3,3), padding='same')(x)
         x = Activation("relu")(x)
-        x = batch_normalization(axis=-1)(x)
+        x = BatchNormalization(axis=-1)(x)
         x = MaxPooling2D(pool_size=(2,2))(x)
         x = Dropout(0.25)(x)
 
         x = Conv2D(32, (3,3), padding='same')(x)
         x = Activation("relu")(x)
-        x = batch_normalization(axis=-1)(x)
+        x = BatchNormalization(axis=-1)(x)
         x = MaxPooling2D(pool_size=(2,2))(x)
         x = Dropout(0.25)(x)
 
@@ -141,10 +167,10 @@ class RubiksOutputModel():
         x = Flatten()(x)
         x = Dense(128)(x)
         x = Activation("relu")(x)
-        x = batch_normalization()(x)
+        x = BatchNormalization()(x)
         x = Dropout(0.5)(x)
-        x = Dense(2)(x)
-        x = Activation("sigmoid", name="size_output")(x)
+        x = Dense(1)(x)
+        x = Activation("sigmoid", name="size_out")(x)
 
         return x
     
@@ -157,10 +183,10 @@ class RubiksOutputModel():
         x = Flatten()(x)
         x = Dense(128)(x)
         x = Activation("relu")(x)
-        x = batch_normalization()(x)
+        x = BatchNormalization()(x)
         x = Dropout(0.5)(x)
-        x = Dense(2)(x)
-        x = Activation("sigmoid", name="edged_output")(x)
+        x = Dense(1)(x)
+        x = Activation("sigmoid", name="edged_out")(x)
 
         return x
     
@@ -173,10 +199,10 @@ class RubiksOutputModel():
         x = Flatten()(x)
         x = Dense(128)(x)
         x = Activation("relu")(x)
-        x = batch_normalization()(x)
+        x = BatchNormalization()(x)
         x = Dropout(0.5)(x)
-        x = Dense(1)(x)
-        x = Activation("softmax", name="sq0_output")(x)
+        x = Dense(6)(x)
+        x = Activation("softmax", name="sq0out")(x)
 
         return x
     
@@ -189,10 +215,10 @@ class RubiksOutputModel():
         x = Flatten()(x)
         x = Dense(128)(x)
         x = Activation("relu")(x)
-        x = batch_normalization()(x)
+        x = BatchNormalization()(x)
         x = Dropout(0.5)(x)
-        x = Dense(1)(x)
-        x = Activation("softmax", name="sq1_output")(x)
+        x = Dense(6)(x)
+        x = Activation("softmax", name="sq1out")(x)
 
         return x
     
@@ -205,10 +231,10 @@ class RubiksOutputModel():
         x = Flatten()(x)
         x = Dense(128)(x)
         x = Activation("relu")(x)
-        x = batch_normalization()(x)
+        x = BatchNormalization()(x)
         x = Dropout(0.5)(x)
-        x = Dense(1)(x)
-        x = Activation("softmax", name="sq2_output")(x)
+        x = Dense(6)(x)
+        x = Activation("softmax", name="sq2out")(x)
 
         return x
     
@@ -221,10 +247,10 @@ class RubiksOutputModel():
         x = Flatten()(x)
         x = Dense(128)(x)
         x = Activation("relu")(x)
-        x = batch_normalization()(x)
+        x = BatchNormalization()(x)
         x = Dropout(0.5)(x)
-        x = Dense(1)(x)
-        x = Activation("softmax", name="sq3_output")(x)
+        x = Dense(6)(x)
+        x = Activation("softmax", name="sq3out")(x)
 
         return x
     
@@ -237,10 +263,10 @@ class RubiksOutputModel():
         x = Flatten()(x)
         x = Dense(128)(x)
         x = Activation("relu")(x)
-        x = batch_normalization()(x)
+        x = BatchNormalization()(x)
         x = Dropout(0.5)(x)
-        x = Dense(1)(x)
-        x = Activation("softmax", name="sq4_output")(x)
+        x = Dense(6)(x)
+        x = Activation("softmax", name="sq4out")(x)
 
         return x
     
@@ -253,10 +279,10 @@ class RubiksOutputModel():
         x = Flatten()(x)
         x = Dense(128)(x)
         x = Activation("relu")(x)
-        x = batch_normalization()(x)
+        x = BatchNormalization()(x)
         x = Dropout(0.5)(x)
-        x = Dense(1)(x)
-        x = Activation("softmax", name="sq5_output")(x)
+        x = Dense(6)(x)
+        x = Activation("softmax", name="sq5out")(x)
 
         return x
     
@@ -269,10 +295,10 @@ class RubiksOutputModel():
         x = Flatten()(x)
         x = Dense(128)(x)
         x = Activation("relu")(x)
-        x = batch_normalization()(x)
+        x = BatchNormalization()(x)
         x = Dropout(0.5)(x)
-        x = Dense(1)(x)
-        x = Activation("softmax", name="sq6_output")(x)
+        x = Dense(6)(x)
+        x = Activation("softmax", name="sq6out")(x)
 
         return x
     
@@ -285,10 +311,10 @@ class RubiksOutputModel():
         x = Flatten()(x)
         x = Dense(128)(x)
         x = Activation("relu")(x)
-        x = batch_normalization()(x)
+        x = BatchNormalization()(x)
         x = Dropout(0.5)(x)
-        x = Dense(1)(x)
-        x = Activation("softmax", name="sq7_output")(x)
+        x = Dense(6)(x)
+        x = Activation("softmax", name="sq7out")(x)
 
         return x
     
@@ -301,10 +327,10 @@ class RubiksOutputModel():
         x = Flatten()(x)
         x = Dense(128)(x)
         x = Activation("relu")(x)
-        x = batch_normalization()(x)
+        x = BatchNormalization()(x)
         x = Dropout(0.5)(x)
-        x = Dense(1)(x)
-        x = Activation("softmax", name="sq8_output")(x)
+        x = Dense(6)(x)
+        x = Activation("softmax", name="sq8out")(x)
 
         return x
     
@@ -329,7 +355,7 @@ class RubiksOutputModel():
         sq7br = self.build_square7(inputs)
         sq8br = self.build_square8(inputs)
 
-        model = Model(inputs=inputs, outputs=[sizebr, edgedbr, sq0br, sq1br, sq2br, sq3br, sq4br, sq4br, sq5br, sq6br, sq7br, sq8br], name="rubiks_net")
+        model = Model(inputs=inputs, outputs=[sizebr, edgedbr, sq0br, sq1br, sq2br, sq3br, sq4br, sq5br, sq6br, sq7br, sq8br], name="rubiks_net")
 
         return model
 
@@ -340,18 +366,52 @@ train_idx, valid_idx, test_idx = datagen.generate_indices()
 model = RubiksOutputModel().assemble_cnn(IM_WIDTH, IM_HEIGHT)
 
 init_lr = 1e-4
-epochs = 100
+epochs = 30
 
-opt = adam(lr=init_lr, decay=init_lr/epochs)
+opt = Adam(learning_rate=init_lr, decay=init_lr/epochs)
 
-model.compile(optimizer=opt,loss={'size_out':'binary_crossentropy','edged_out':'binary_crossentropy','sq0out':'categorical_crossentropy','sq1out':'categorical_crossentropy','sq2out':'categorical_crossentropy','sq3out':'categorical_crossentropy','sq4out':'categorical_crossentropy','sq5out':'categorical_crossentropy','sq6out':'categorical_crossentropy','sq7out':'categorical_crossentropy','sq8out':'categorical_crossentropy'},loss_weights={'size_out':1.5,'edged_out':0.75,'sq0out':3,'sq1out':3,'sq2out':3,'sq3out':3,'sq4out':3,'sq5out':3,'sq6out':3,'sq7out':3,'sq8out':3},metrics={'size_out':'accuracy','edged_out':'accuracy','sq0out':'accuracy','sq1out':'accuracy','sq2out':'accuracy','sq3out':'accuracy','sq4out':'accuracy','sq5out':'accuracy','sq6out':'accuracy','sq7out':'accuracy','sq8out':'accuracy'})
+model.compile(optimizer=opt,loss={'size_out':'binary_crossentropy',
+                                  'edged_out':'binary_crossentropy',
+                                  'sq0out':'categorical_crossentropy',
+                                  'sq1out':'categorical_crossentropy',
+                                  'sq2out':'categorical_crossentropy',
+                                  'sq3out':'categorical_crossentropy',
+                                  'sq4out':'categorical_crossentropy',
+                                  'sq5out':'categorical_crossentropy',
+                                  'sq6out':'categorical_crossentropy',
+                                  'sq7out':'categorical_crossentropy',
+                                  'sq8out':'categorical_crossentropy'},
+                                  loss_weights={
+                                      'size_out':6,
+                                      'edged_out':6,
+                                      'sq0out':2,
+                                      'sq1out':2,
+                                      'sq2out':2,
+                                      'sq3out':2,
+                                      'sq4out':2,
+                                      'sq5out':2,
+                                      'sq6out':2,
+                                      'sq7out':2,
+                                      'sq8out':2},
+                                      metrics={
+                                          'size_out':'accuracy',
+                                          'edged_out':'accuracy',
+                                          'sq0out':'accuracy',
+                                          'sq1out':'accuracy',
+                                          'sq2out':'accuracy',
+                                          'sq3out':'accuracy',
+                                          'sq4out':'accuracy',
+                                          'sq5out':'accuracy',
+                                          'sq6out':'accuracy',
+                                          'sq7out':'accuracy',
+                                          'sq8out':'accuracy'})
 
 batch_size=32
 valid_batch_size=32
 
-train_gen = datagen.image_batch(train_idx, is_training=True, batchsize=batch_size)
-valid_gen = datagen.image_batch(valid_idx, is_training=True, batchsize=valid_batch_size)
+train_gen = datagen.image_batch(train_idx, in_training=True, batchsize=batch_size)
+valid_gen = datagen.image_batch(valid_idx, in_training=True, batchsize=valid_batch_size)
 
 callbacks = [ModelCheckpoint("./model_checkpoint", monitor = 'val_loss')]
 
-history = model.fit_generator(train_gen, steps_per_epoch=len(train_idx)//batch_size, epochs=epochs, callbacks=callbacks, validation_data=valid_gen, validation_steps = len(valid_idx)//valid_batch_size)
+history = model.fit(train_gen, steps_per_epoch=len(train_idx)//batch_size, epochs=epochs, callbacks=callbacks, validation_data=valid_gen, validation_steps = len(valid_idx)//valid_batch_size)

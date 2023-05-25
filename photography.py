@@ -6,6 +6,7 @@ from crop_image import guidelines
 # Initialize the camera object.
 cam = cv2.VideoCapture(1)
 result, img = cam.read()
+img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 # Time delay to allow the shutter to autofocus.
 time.sleep(0.5)
@@ -16,13 +17,15 @@ folder = "dataset_imgs/"
 while result:
     # Capture video frame by frame
     result, img = cam.read()
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     # Place guidelines on a copy of the img.
     img_guidelines = guidelines(img)
 
     # Display the resulting copy.
-    cv2.imshow(('VIDEO FEED -- Captured '+str(image_num)+' images.'), img_guidelines)
-        
+    #cv2.imshow(('VIDEO FEED -- Captured '+str(image_num)+' images.'), img_guidelines)
+
+    cv2.imshow(('VIDEO FEED'), img_guidelines) 
     # Use Q to quit.
     if cv2.waitKey(81)  == ord('q'):
         break
@@ -55,7 +58,8 @@ while result:
         # Crop the img to the above dimensions.
         img_cropped = np.copy(img)
         img_cropped = img_cropped[border_top:border_top+center_width, border_side:border_side+center_width]
-        
+
+        '''
         ### FILE CLASSIFICATION ###
         edge = "edge_" if "y" in input("Is this an edged cube? (Y/N)\n").lower() else "noedge_"
         print("Write the colors on this face in sequence, such as 'WWWWWWWWW' for all-white or 'ROYGBWBGY'.")
@@ -64,6 +68,7 @@ while result:
         small = "large_" if "y" in input("Is this a closeup? (Y/N)\n").lower() else "small_"
         cv2.imwrite((folder+edge+colstring+small+str(image_num)+'.png'), img)
         image_num+=1
+        '''
         
         cv2.destroyAllWindows()
         time.sleep(0.75)
