@@ -11,11 +11,11 @@ def redden(im:np.ndarray, amount:int) -> np.ndarray:
     else:
         amount2 = amount
 
-    im2 = im.astype(np.float64)
+    im2 = np.copy(im).astype(np.float64)
 
     im2[:,:,0] *= amount2
 
-    im2 = np.clip(im, 0, 255)
+    im2 = np.clip(im2, 0, 255)
 
     return im2.astype(np.uint8)
 
@@ -25,11 +25,11 @@ def greenify(im:np.ndarray, amount:int) -> np.ndarray:
     else:
         amount2 = amount
 
-    im2 = im.astype(np.float64)
+    im2 = np.copy(im).astype(np.float64)
 
     im2[:,:,1] *= amount2
 
-    im2 = np.clip(im, 0, 255)
+    im2 = np.clip(im2, 0, 255)
 
     return im2.astype(np.uint8)
 
@@ -39,11 +39,11 @@ def blueify(im:np.ndarray, amount:int) -> np.ndarray:
     else:
         amount2 = amount
 
-    im = im.astype(np.float64)
+    im2 = np.copy(im).astype(np.float64)
 
-    im[:,:,2] *= amount2
+    im2[:,:,2] *= amount2
 
-    im2 = np.clip(im, 0, 255)
+    im2 = np.clip(im2, 0, 255)
 
     return im2.astype(np.uint8)
 
@@ -53,8 +53,8 @@ def blur(im:np.ndarray, amount:int) -> np.ndarray:
     if amount2>5:
         amount2=5
 
-    im = Image.fromarray(im)
-    im2 = im.filter(ImageFilter.GaussianBlur(amount2))
+    im2 = Image.fromarray(np.copy(im))
+    im2 = im2.filter(ImageFilter.GaussianBlur(amount2))
     im2 = np.array(im2)
 
     return im2.astype(np.uint8)
@@ -65,8 +65,8 @@ def brighten(im:np.ndarray, amount:int) -> np.ndarray:
     else:
         amount2 = amount
 
-    im = Image.fromarray(im)
-    im2 = ImageEnhance.Brightness(im).enhance(amount2)
+    im2 = Image.fromarray(np.copy(im))
+    im2 = ImageEnhance.Brightness(im2).enhance(amount2)
     im2 = np.array(im2)
 
     return im2.astype(np.uint8)
@@ -77,8 +77,8 @@ def contrast(im:np.ndarray, amount:int) -> np.ndarray:
     else:
         amount2 = amount
 
-    im = Image.fromarray(im)
-    im2 = ImageEnhance.Contrast(im).enhance(amount2)
+    im2 = Image.fromarray(np.copy(im))
+    im2 = ImageEnhance.Contrast(im2).enhance(amount2)
     im2 = np.array(im2)
 
     return im2.astype(np.uint8)
@@ -89,8 +89,8 @@ def saturate(im:np.ndarray, amount:int) -> np.ndarray:
     else:
         amount2 = amount
 
-    im = Image.fromarray(im)
-    im2 = ImageEnhance.Color(im).enhance(amount2)
+    im2 = Image.fromarray(np.copy(im))
+    im2 = ImageEnhance.Color(im2).enhance(amount2)
     im2 = np.array(im2)
 
     return im2.astype(np.uint8)
@@ -123,13 +123,13 @@ def change_temp(im:np.ndarray, amount:int) -> np.ndarray:
         temp = 8000
     elif temp < 2000:
         temp = 2000
-    im = Image.fromarray(im)
+    im2 = Image.fromarray(np.copy(im))
     
     r, g, b = kelvin_table[temp]
     matrix = ( r / 255.0, 0.0, 0.0, 0.0,
                0.0, g / 255.0, 0.0, 0.0,
                0.0, 0.0, b / 255.0, 0.0 )
-    im2 = im.convert('RGB', matrix)
+    im2 = im2.convert('RGB', matrix)
     im2 = np.array(im2)
     
     return im2.astype(np.uint8)

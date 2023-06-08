@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 
 from keras.callbacks import ModelCheckpoint
 from keras.layers import Flatten, Input, BatchNormalization
@@ -24,7 +23,6 @@ for num in range(9):
     col_names.append(col_name)
 
 data = ai_basics.dataset_to_dataframe()
-print(data)
 
 class RubiksCubeFaceDataGen():
     '''
@@ -59,9 +57,9 @@ class RubiksCubeFaceDataGen():
                 positive = bool(random.randint(0,1))
 
                 if positive:
-                    amount = random.randint(2, 32)
+                    amount = random.randint(2, 15)
                 else:
-                    amount = -1*random.randint(2,32)
+                    amount = -1*random.randint(2,15)
                 
                 filterfunc = random.choice([ai_basics.redden,
                                              ai_basics.greenify,
@@ -125,8 +123,6 @@ class RubiksCubeFaceDataGen():
 
             if not in_training:
                 break
-
-
 
 class RubiksOutputModel():
     """
@@ -359,14 +355,12 @@ class RubiksOutputModel():
 
         return model
 
-
-
 datagen = RubiksCubeFaceDataGen(data)
 train_idx, valid_idx, test_idx = datagen.generate_indices()
 model = RubiksOutputModel().assemble_cnn(IM_WIDTH, IM_HEIGHT)
 
 init_lr = 1e-4
-epochs = 30
+epochs = 150
 
 opt = Adam(learning_rate=init_lr, decay=init_lr/epochs)
 
@@ -406,8 +400,8 @@ model.compile(optimizer=opt,loss={'size_out':'binary_crossentropy',
                                           'sq7out':'accuracy',
                                           'sq8out':'accuracy'})
 
-batch_size=32
-valid_batch_size=32
+batch_size=24
+valid_batch_size=24
 
 train_gen = datagen.image_batch(train_idx, in_training=True, batchsize=batch_size)
 valid_gen = datagen.image_batch(valid_idx, in_training=True, batchsize=valid_batch_size)
