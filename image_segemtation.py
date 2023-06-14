@@ -1,15 +1,21 @@
+"""
+IMAGE SEGMENTATION
+Author: Nino R, Blanca S, Alekhya P, Caden B.
+Date: 6/14/2023
+This code implements various attempts at image segmentation for the purpose of finding color. Contains some utils for the app.
+While it was ultimately scrapped in favor of an AI-based project, this was the closest algorithmic solution we had to the problem.
+"""
+
 ### IMPORT ###
 import time
 import cv2
 import numpy as np
-import os
 import pandas as pd
 
 ### CONSTANTS ###
 
 # For the "Cube face format", neighbors defines which squares are neighbors of the others either horizontally or vertically.
 # Neighbors_diag is similar, but for diagonal neighbors.
-
 
 '''
 For neighbors:

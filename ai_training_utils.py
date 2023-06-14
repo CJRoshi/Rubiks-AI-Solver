@@ -1,8 +1,19 @@
+"""
+AI TRAINING
+Author: Nino R.
+Date: 6/14/2023
+This code implements a way to train the AI on the images in the dataset, taking advantage of the data utilities in ai_data_utils.py. 
+Much of the code here was based on code from https://github.com/rodrigobressan's Face2Data project, which helped me get a grasp of Keras and
+CNNs more generally.
+"""
+
+### IMPORT ###
+
+import random
 import numpy as np
 import pandas as pd
-
 from keras.callbacks import ModelCheckpoint
-from keras.layers import Flatten, Input, BatchNormalization
+from keras.layers import BatchNormalization, Flatten, Input
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.layers.core import Activation, Dense, Dropout
 from keras.models import Model
@@ -10,9 +21,9 @@ from keras.optimizers import Adam
 from keras.utils import to_categorical
 from PIL import Image
 
-import ai_basics
-import random
+import ai_data_utils
 
+### CONST ###
 TRAIN_TEST_SPLIT = 0.7
 IM_WIDTH = IM_HEIGHT = 360
 dataset_folder = 'dataset_imgs/'
@@ -22,8 +33,10 @@ for num in range(9):
     col_name = 'square_'+str(num)
     col_names.append(col_name)
 
-data = ai_basics.dataset_to_dataframe()
+# Load Data.
+data = ai_data_utils.dataset_to_dataframe()
 
+######## FUNCTIONS/CLASSES ########
 class RubiksCubeFaceDataGen():
     '''
     Data generator for the images in dataset_imgs. Used to train the model.
@@ -33,8 +46,13 @@ class RubiksCubeFaceDataGen():
         self.df = df
 
     def generate_indices(self):
-        # Shuffle df, and create a training set, test set, and validation set.
+        '''
+        Shuffle df. Then, create the indices for a training set, test set, and validation set.
+        '''
+        # Shuffle.
         p = np.random.permutation(len(self.df))
+
+        # Set indices created.
         train_up_to = int(len(self.df)*TRAIN_TEST_SPLIT)
         train_idx = p[:train_up_to]
         test_idx = p[train_up_to:]
@@ -45,6 +63,20 @@ class RubiksCubeFaceDataGen():
         return train_idx, valid_idx, test_idx
     
     def preprocess_and_augment(self, img_path):
+        '''
+        Preprocesses an image in a batch and performs basic data augmentation using the filter functions from ai_basics.
+
+        Filtering Algorithm:
+
+        Choose a number of filters to apply randomly from 0 to 5.
+
+        For each filter, apply it with a strength from 2%-15% in either a positive or negative direction.
+        (Certain filters have limits described in their own documentation and are automatically handled.)
+
+        Normalize the image and return it.
+        '''
+
+        # Open the image, convert it to an array.
         im = Image.open(img_path)
         im = im.resize((IM_WIDTH, IM_HEIGHT))
         im = np.asarray(im)
@@ -59,16 +91,16 @@ class RubiksCubeFaceDataGen():
                 if positive:
                     amount = random.randint(2, 15)
                 else:
-                    amount = -1*random.randint(2,15)
+                    amount = -1*random.randint(2, 15)
                 
-                filterfunc = random.choice([ai_basics.redden,
-                                             ai_basics.greenify,
-                                             ai_basics.blueify,
-                                             ai_basics.saturate,
-                                             ai_basics.change_temp,
-                                             ai_basics.brighten,
-                                             ai_basics.contrast,
-                                             ai_basics.blur])
+                filterfunc = random.choice([ai_data_utils.redden,
+                                             ai_data_utils.greenify,
+                                             ai_data_utils.blueify,
+                                             ai_data_utils.saturate,
+                                             ai_data_utils.change_temp,
+                                             ai_data_utils.brighten,
+                                             ai_data_utils.contrast,
+                                             ai_data_utils.blur])
                 
                 im = filterfunc(im, amount)
 
@@ -77,7 +109,9 @@ class RubiksCubeFaceDataGen():
         return im
     
     def image_batch(self, image_idx, in_training, batchsize=10):
-        "Generates image batches when using the model."
+        '''
+        Generates image batches when using the model.
+        '''
 
         images, sizes, edgedes, square_0s, square_1s, square_2s, square_3s, square_4s, square_5s, square_6s, square_7s, square_8s = [], [], [], [], [], [], [], [], [], [], [], []
         while True:
@@ -355,57 +389,69 @@ class RubiksOutputModel():
 
         return model
 
-datagen = RubiksCubeFaceDataGen(data)
-train_idx, valid_idx, test_idx = datagen.generate_indices()
-model = RubiksOutputModel().assemble_cnn(IM_WIDTH, IM_HEIGHT)
+############ MAIN ############
+def main():
+    ''' Train the AI with preset hyperparameters. Checkpoints and weights are saved in the model_checkpoint folder.'''
 
-init_lr = 1e-4
-epochs = 150
+    # Generate data and indices
+    datagen = RubiksCubeFaceDataGen(data)
+    train_idx, valid_idx, test_idx = datagen.generate_indices()
+    model = RubiksOutputModel().assemble_cnn(IM_WIDTH, IM_HEIGHT)
 
-opt = Adam(learning_rate=init_lr, decay=init_lr/epochs)
+    # Learning Rate, number of Epochs
+    init_lr = 1e-4
+    epochs = 150
 
-model.compile(optimizer=opt,loss={'size_out':'binary_crossentropy',
-                                  'edged_out':'binary_crossentropy',
-                                  'sq0out':'categorical_crossentropy',
-                                  'sq1out':'categorical_crossentropy',
-                                  'sq2out':'categorical_crossentropy',
-                                  'sq3out':'categorical_crossentropy',
-                                  'sq4out':'categorical_crossentropy',
-                                  'sq5out':'categorical_crossentropy',
-                                  'sq6out':'categorical_crossentropy',
-                                  'sq7out':'categorical_crossentropy',
-                                  'sq8out':'categorical_crossentropy'},
-                                  loss_weights={
-                                      'size_out':6,
-                                      'edged_out':6,
-                                      'sq0out':2,
-                                      'sq1out':2,
-                                      'sq2out':2,
-                                      'sq3out':2,
-                                      'sq4out':2,
-                                      'sq5out':2,
-                                      'sq6out':2,
-                                      'sq7out':2,
-                                      'sq8out':2},
-                                      metrics={
-                                          'size_out':'accuracy',
-                                          'edged_out':'accuracy',
-                                          'sq0out':'accuracy',
-                                          'sq1out':'accuracy',
-                                          'sq2out':'accuracy',
-                                          'sq3out':'accuracy',
-                                          'sq4out':'accuracy',
-                                          'sq5out':'accuracy',
-                                          'sq6out':'accuracy',
-                                          'sq7out':'accuracy',
-                                          'sq8out':'accuracy'})
 
-batch_size=24
-valid_batch_size=24
+    # Model Compilation and Weights
+    opt = Adam(learning_rate=init_lr, decay=init_lr/epochs)
 
-train_gen = datagen.image_batch(train_idx, in_training=True, batchsize=batch_size)
-valid_gen = datagen.image_batch(valid_idx, in_training=True, batchsize=valid_batch_size)
+    model.compile(optimizer=opt,loss={'size_out':'binary_crossentropy',
+                                    'edged_out':'binary_crossentropy',
+                                    'sq0out':'categorical_crossentropy',
+                                    'sq1out':'categorical_crossentropy',
+                                    'sq2out':'categorical_crossentropy',
+                                    'sq3out':'categorical_crossentropy',
+                                    'sq4out':'categorical_crossentropy',
+                                    'sq5out':'categorical_crossentropy',
+                                    'sq6out':'categorical_crossentropy',
+                                    'sq7out':'categorical_crossentropy',
+                                    'sq8out':'categorical_crossentropy'},
+                                    loss_weights={
+                                        'size_out':6,
+                                        'edged_out':6,
+                                        'sq0out':2,
+                                        'sq1out':2,
+                                        'sq2out':2,
+                                        'sq3out':2,
+                                        'sq4out':2,
+                                        'sq5out':2,
+                                        'sq6out':2,
+                                        'sq7out':2,
+                                        'sq8out':2},
+                                        metrics={
+                                            'size_out':'accuracy',
+                                            'edged_out':'accuracy',
+                                            'sq0out':'accuracy',
+                                            'sq1out':'accuracy',
+                                            'sq2out':'accuracy',
+                                            'sq3out':'accuracy',
+                                            'sq4out':'accuracy',
+                                            'sq5out':'accuracy',
+                                            'sq6out':'accuracy',
+                                            'sq7out':'accuracy',
+                                            'sq8out':'accuracy'})
 
-callbacks = [ModelCheckpoint("./model_checkpoint", monitor = 'val_loss')]
 
-history = model.fit(train_gen, steps_per_epoch=len(train_idx)//batch_size, epochs=epochs, callbacks=callbacks, validation_data=valid_gen, validation_steps = len(valid_idx)//valid_batch_size)
+    # Batch Sizes.
+    batch_size=32
+    valid_batch_size=32
+
+    # Generate image batches based on the training and validation indices.
+    train_gen = datagen.image_batch(train_idx, in_training=True, batchsize=batch_size)
+    valid_gen = datagen.image_batch(valid_idx, in_training=True, batchsize=valid_batch_size)
+
+    callbacks = [ModelCheckpoint("./model_checkpoint", monitor = 'val_loss')]
+
+    # Train Model
+    history = model.fit(train_gen, steps_per_epoch=len(train_idx)//batch_size, epochs=epochs, callbacks=callbacks, validation_data=valid_gen, validation_steps = len(valid_idx)//valid_batch_size)

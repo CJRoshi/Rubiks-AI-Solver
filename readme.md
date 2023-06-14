@@ -1,6 +1,6 @@
 # **Welcome to RubiksNet!**
 
-RubiksNet is a small project from the North Andover High School Engineering Club that uses Deep Learning (in the form of a Convolutional Neural Network) to try to solve a Rubik's Cube.
+RubiksNet is a small project from the North Andover High School Engineering Club that uses Deep Learning (in the form of a Convolutional Neural Network) to try to solve a Rubik's Cube from *your* image input.
 
 The project is **not released yet**, but it will be soon.
 

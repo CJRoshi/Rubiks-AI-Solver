@@ -1,3 +1,11 @@
+"""
+AI DATA UTILS
+Author: Nino R, Caden B, Blanca S.
+Date: 6/14/2023
+This code implements various data utilities such as a dataset parser and various image filters for data augmentation during training.
+"""
+
+### IMPORT ###
 import numpy as np
 import pandas as pd
 import os
@@ -6,6 +14,9 @@ from PIL import Image, ImageFilter, ImageEnhance
 ### FUNC ###
 
 def redden(im:np.ndarray, amount:int) -> np.ndarray:
+    '''
+    Make im redder by amount, or de-redden it if amount is negative.
+    '''
     if abs(amount)>=2:
         amount2 = 0.01*amount+1
     else:
@@ -20,6 +31,9 @@ def redden(im:np.ndarray, amount:int) -> np.ndarray:
     return im2.astype(np.uint8)
 
 def greenify(im:np.ndarray, amount:int) -> np.ndarray:
+    '''
+    Greenify im by amount, or de-greenify it if amount is negative.
+    '''
     if abs(amount)>=2:
         amount2 = 0.01*amount+1
     else:
@@ -34,6 +48,9 @@ def greenify(im:np.ndarray, amount:int) -> np.ndarray:
     return im2.astype(np.uint8)
 
 def blueify(im:np.ndarray, amount:int) -> np.ndarray:
+    '''
+    Blueify im by amount, or de-blueify it if amount is negative.
+    '''
     if abs(amount)>=2:
         amount2 = 0.01*amount+1
     else:
@@ -48,6 +65,9 @@ def blueify(im:np.ndarray, amount:int) -> np.ndarray:
     return im2.astype(np.uint8)
 
 def blur(im:np.ndarray, amount:int) -> np.ndarray:
+    '''
+    Gaussian Blur im by amount, though never stronger than 5.
+    '''
     amount2 = abs(amount)
 
     if amount2>5:
@@ -60,6 +80,9 @@ def blur(im:np.ndarray, amount:int) -> np.ndarray:
     return im2.astype(np.uint8)
 
 def brighten(im:np.ndarray, amount:int) -> np.ndarray:
+    '''
+    Brighten im by amount, or darken it if amount is negative.
+    '''
     if abs(amount)>=2:
         amount2 = 0.01*amount+1
     else:
@@ -68,10 +91,14 @@ def brighten(im:np.ndarray, amount:int) -> np.ndarray:
     im2 = Image.fromarray(np.copy(im))
     im2 = ImageEnhance.Brightness(im2).enhance(amount2)
     im2 = np.array(im2)
+    im2 = np.clip(im2, 0, 255)
 
     return im2.astype(np.uint8)
 
 def contrast(im:np.ndarray, amount:int) -> np.ndarray:
+    '''
+    Increase contrast on im by amount, or decrease contrast if amount is negative.
+    '''
     if abs(amount)>=2:
         amount2 = 0.01*amount+1
     else:
@@ -80,10 +107,14 @@ def contrast(im:np.ndarray, amount:int) -> np.ndarray:
     im2 = Image.fromarray(np.copy(im))
     im2 = ImageEnhance.Contrast(im2).enhance(amount2)
     im2 = np.array(im2)
+    im2 = np.clip(im2, 0, 255)
 
     return im2.astype(np.uint8)
 
 def saturate(im:np.ndarray, amount:int) -> np.ndarray:
+    '''
+    Saturate im by amount, or desaturate it if amount is negative.
+    '''
     if abs(amount)>=2:
         amount2 = 0.01*amount+1
     else:
@@ -92,10 +123,15 @@ def saturate(im:np.ndarray, amount:int) -> np.ndarray:
     im2 = Image.fromarray(np.copy(im))
     im2 = ImageEnhance.Color(im2).enhance(amount2)
     im2 = np.array(im2)
+    im2 = np.clip(im2, 0, 255)
 
     return im2.astype(np.uint8)
 
 def change_temp(im:np.ndarray, amount:int) -> np.ndarray:
+    '''
+    Change the "color temperature" of im by amount, but never by more than 3000K. 
+    It is assumed for the purposes of this function that the color temperature starts at 5000K.
+    '''
     kelvin_table = {
     1000: (255,56,0),
     1500: (255,109,0),
@@ -131,21 +167,27 @@ def change_temp(im:np.ndarray, amount:int) -> np.ndarray:
                0.0, 0.0, b / 255.0, 0.0 )
     im2 = im2.convert('RGB', matrix)
     im2 = np.array(im2)
+    im2 = np.clip(im2, 0, 255)
     
     return im2.astype(np.uint8)
 
 def parse_file(file_path:str) -> tuple[bool, str, bool, int]:
-        try:
-            filename = os.path.split(file_path)[1]
-            filename = filename[:-4]
-            edge, colstring, size, num = filename.split('_')
-        
-            return (True if edge == 'edge' else False), colstring, (True if size == 'large' else False), int(num)
-        except Exception as ex:
-            return None, None, None, None
+    '''
+    Given a file path, split the file into its categorical parts.
+    '''
+    try:
+        filename = os.path.split(file_path)[1]
+        filename = filename[:-4]
+        edge, colstring, size, num = filename.split('_')
+    
+        return (True if edge == 'edge' else False), colstring, (True if size == 'large' else False), int(num)
+    except Exception as ex:
+        return None, None, None, None
 
 def parse_dataset(file_folder:str, ext:str='.png') -> pd.DataFrame:
-    
+    '''
+    Convert the dataset into a basic pandas dataframe.
+    '''
     records = []
     files = []
     for file_ext in os.listdir(file_folder):
@@ -163,6 +205,9 @@ def parse_dataset(file_folder:str, ext:str='.png') -> pd.DataFrame:
     return df
 
 def color_STR_to_INT(col:str) -> str:
+    '''
+    Cleanup function. Converts a given color to its integer equivalent for classification.
+    '''
     if col == 'W':
         return 5
     elif col == 'O':
@@ -179,6 +224,9 @@ def color_STR_to_INT(col:str) -> str:
         return None
     
 def colstring_to_colors(df:pd.DataFrame) -> pd.DataFrame:
+    '''
+    Cleanup function. Splits a colorstring into individual columns for each square and converts the colors into their integer equivalents.
+    '''
     full_records = []
     for colstring in df['colorstring'].values:
         records = {}
@@ -198,6 +246,9 @@ def colstring_to_colors(df:pd.DataFrame) -> pd.DataFrame:
     return df_modified
 
 def dataset_to_dataframe(folder_name:str='dataset_imgs') -> pd.DataFrame:
+    '''
+    Given a dataset of Rubik's Cube faces with categorical data in the filenames, convert the dataset folder into a pandas dataframe.
+    '''
     df = parse_dataset(folder_name)
     df = df.sort_values('number')
     df = df.reset_index()
