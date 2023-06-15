@@ -12,7 +12,7 @@ import cv2
 import numpy as np
 import os
 from PIL import Image
-from image_segemtation import guidelines
+from image_segmentation import guidelines
 from keras.models import load_model
 
 ### CONST ###
