@@ -13,6 +13,7 @@ import numpy as np
 import os
 from PIL import Image
 from image_segmentation import guidelines
+from cube_solving import cubesolutions
 from keras.models import load_model
 
 ### CONST ###
@@ -49,6 +50,9 @@ def get_next_available_num(filenames) -> int:
     return next_num
 
 def upload_to_dropbox(img, size, edged, colstring, token):
+    '''
+    Takes an image and its supplemental data along with an OAUTH2 token, and uploads a file to the RubiksNet database.
+    '''
 
     # Setub Dropbox for reception
     dbx = dropbox.Dropbox(token)
@@ -77,8 +81,6 @@ def analyze_photo(img:np.ndarray, model) -> tuple[str, str, str, np.ndarray]:
 
     Return the results, and also return the processed version of the image.
     '''
-
-
 
     ### IMAGE PROCESSING ###
     imgheight, imgwidth, depth = np.shape(img)
@@ -192,7 +194,7 @@ def main():
             print(colstring)
 
             # User Corrections
-            colstring = input("Correct the colorstring.\nKEY:\nR -> Red | O -> Orange | Y -> Yellow | G -> Green | B -> Blue | W -> White\n")
+            colstring = input("Correct the colorstring. (Left empty, nothing will be changed.)\nKEY:\nR -> Red | O -> Orange | Y -> Yellow | G -> Green | B -> Blue | W -> White\n")
             
             if edged == 'edge':
                 print("The AI predicts this is an edged cube. Is it?")
