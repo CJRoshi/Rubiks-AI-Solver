@@ -74,7 +74,7 @@ solve_cube(corrected_predicitons)
 
 ### 5. **The GUI/RubiksNet App**
 
-* This was tricky to implement. The [appliation flow described](#1.-Purpose) is essentially the same, though we'd like to highlight some specifics of the app.
+* This was tricky to implement. The [application flow described](#1.-Purpose) is essentially the same, though we'd like to highlight some specifics of the app.
     * We devised a system to make it easier for the user to correct color predictions.
     * We call this system **ColorSquare**.
     * It creates a grid of ColorSquares that behave as follows:
